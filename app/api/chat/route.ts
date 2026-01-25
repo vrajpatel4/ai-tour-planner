@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Get AI response
     const aiResponse = await aiService.chat(
-      conversation.messages.map(msg => ({
+      conversation.messages.map((msg:any) => ({
         role: msg.role,
         content: msg.content,
       })),

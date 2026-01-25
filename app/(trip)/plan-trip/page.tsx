@@ -59,12 +59,13 @@ export default function TripPage() {
       ]
     },
   ]);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string>("");
   const [activeTab, setActiveTab] = useState("itinerary");
   const [showResults, setShowResults] = useState(false);
   const [planGenerated, setPlanGenerated] = useState(false);
-  const [expandedDay, setExpandedDay] = useState(null);
+  const [expandedDay, setExpandedDay] = useState<number>(0);
   const [itineraryData,setItineraryData] = useState(initialItineraryData)
+  const [currentConversationId,setCurrentConversationId] = useState("")
 
   // const handleSend = async () => {
   //   if (!query.trim()) return;
@@ -99,17 +100,17 @@ export default function TripPage() {
   //   }, 2000);
   // };
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = (suggestion:string) => {
     setQuery(suggestion);
   };
 
-  const toggleDay = (dayIndex) => {
-    setExpandedDay(expandedDay === dayIndex ? null : dayIndex);
+  const toggleDay = (dayIndex:number) => {
+    setExpandedDay(expandedDay === dayIndex ? 0 : dayIndex);
   };
 
-  const { isSignedIn, user, isLoaded } = useUser();
+  const { isSignedIn } = useUser();
   const [loading, setLoading] = useState(false);
-  const [userTrips, setUserTrips] = useState<any[]>([]);
+  const [_userTrips, setUserTrips] = useState<any[]>([]);
 
   // Fetch user trips on load
   useEffect(() => {
@@ -139,7 +140,12 @@ export default function TripPage() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     
-    setMessages([...messages, userMessage]);
+    setMessages((prevState:any) => {
+      return [
+        ...prevState,
+        userMessage
+      ]
+    });
     setQuery("");
     setLoading(true);
 
