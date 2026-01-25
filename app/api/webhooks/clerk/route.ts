@@ -1,7 +1,7 @@
 import { createUser, deleteUser } from "@/app/lib/actions/user.action";
 import { connectDB } from "@/app/lib/db";
 import User from "@/app/lib/models/User";
-import { clerkClient, WebhookEvent } from "@clerk/nextjs/server";
+import { clerkClient, UserJSON, WebhookEvent } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
@@ -25,11 +25,13 @@ export async function POST(req: Request) {
 
   const { type, data } = event;
 
+  const userData = data as UserJSON;
+
   const userObj = {
     clerkId: data.id,
-    email: data.email_addresses[0].email_address,
-    name: `${data.first_name ?? ""} ${data.last_name ?? ""}`,
-    image: data.image_url,
+    email: userData.email_addresses[0].email_address,
+    name: `${userData.first_name ?? ""} ${userData.last_name ?? ""}`,
+    image: userData.image_url,
   };
 
   if (type === "user.created") {
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       message: "User Created Sucessfully",
       user: newUser,
-      status : 200
+      status: 200,
     });
   }
 
