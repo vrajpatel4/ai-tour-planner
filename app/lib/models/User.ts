@@ -35,10 +35,10 @@ const UserSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Update the updatedAt timestamp on save
-UserSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
-});
+// // Update the updatedAt timestamp on save
+// UserSchema.pre('save', function(next) {
+//   this.updatedAt = new Date();
+//   next();
+// });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);
