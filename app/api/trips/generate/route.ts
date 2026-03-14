@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
     const aiPlan = await aiService.generateItinerary(preferences);
 
     const start = new Date(startDate);
+    const end = new Date(endDate);
+
 
     // Create trip in database
     const trip = new Trip({
