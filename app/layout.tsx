@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { MainLayout } from "./_layouts";
+import Providers from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +40,9 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white`}
         >
-          <MainLayout>{children}</MainLayout>
+          <Providers>
+            <MainLayout>{children}</MainLayout>
+          </Providers>
         </body>
       </html>
     </ClerkProvider>

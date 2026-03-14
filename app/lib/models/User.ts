@@ -23,6 +23,26 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {},
   },
+  billing: {
+    plan: {
+      type: String,
+      default: "free",
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  credits: {
+    used: {
+      type: Number,
+      default: 0,
+    },
+    resetAt: {
+      type: Date,
+      default: null,
+    },
+  },
   createdAt: {
     type: Date,
     default: Date.now,

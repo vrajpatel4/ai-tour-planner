@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    const query: any = { clerkUserId: user.clerkUserId };
+    const query: Record<string, string> = { clerkUserId: user.clerkId };
     if (status) query.status = status;
 
     const trips = await Trip.find(query)
@@ -42,6 +42,44 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(
       { error: 'Failed to fetch trips' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await requireAuth();
+    await connectDB();
+
+    const body = await request.json();
+    const { title, destination, startDate, endDate, budget = 0, travelers = 1 } = body;
+
+    if (!title || !destination || !startDate || !endDate) {
+      return NextResponse.json(
+        { error: 'Title, destination, start date and end date are required' },
+        { status: 400 }
+      );
+    }
+
+    const trip = await Trip.create({
+      userId: user._id,
+      clerkUserId: user.clerkId,
+      title,
+      destination,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      budget,
+      travelers,
+      status: "draft",
+      days: [],
+    });
+
+    return NextResponse.json({ success: true, trip }, { status: 201 });
+  } catch (error) {
+    console.error('Create trip error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create trip' },
       { status: 500 }
     );
   }

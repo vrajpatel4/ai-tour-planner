@@ -274,24 +274,30 @@ export const BlurImage = ({
   src,
   className,
   alt,
+  sizes,
+  onLoad,
   ...rest
 }: ImageProps) => {
   const [isLoading, setLoading] = useState(true);
+
+  const handleLoad: React.ReactEventHandler<HTMLImageElement> = (event) => {
+    setLoading(false);
+    onLoad?.(event);
+  };
+
   return (
-    <img
+    <Image
       className={cn(
         "h-full w-full transition duration-300",
         isLoading ? "blur-sm" : "blur-0",
         className,
       )}
-      onLoad={() => setLoading(false)}
+      onLoad={handleLoad}
       src={src as string}
       width={width}
       height={height}
-      loading="lazy"
-      decoding="async"
-      blurDataURL={typeof src === "string" ? src : undefined}
       alt={alt ? alt : "Background of a beautiful view"}
+      sizes={sizes ?? "(max-width: 768px) 224px, 384px"}
       {...rest}
     />
   );
