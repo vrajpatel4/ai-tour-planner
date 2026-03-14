@@ -4,6 +4,8 @@ import { requireAuth } from '@/app/lib/auth';
 import { connectDB } from '@/app/lib/db';
 import Trip from '@/app/lib/models/Trip';
 
+export const runtime = "nodejs";
+
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();

@@ -6,6 +6,8 @@ import { connectDB } from '@/app/lib/db';
 import Trip from '@/app/lib/models/Trip';
 import { reserveCredits, refundCredits } from "@/app/lib/billing";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   let creditReservation:
     | (Awaited<ReturnType<typeof reserveCredits>> & { allowed?: boolean })
