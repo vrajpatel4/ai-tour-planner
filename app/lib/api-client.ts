@@ -1,80 +1,93 @@
-// app/lib/api-client.ts
-const API_BASE = '/api';
+import axios from "axios";
+import { withTryCatch } from "@/app/lib/try-catch";
 
-export const apiClient = {
-  // Authentication
-  async getCurrentUser() {
-    const response = await fetch(`${API_BASE}/auth/me`);
-    return response.json();
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "/api"
+  // "https://lamiaceous-cristi-semidramatically.ngrok-free.dev/api";
+
+const http = axios.create({
+  baseURL: API_BASE,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export const ApiService = {
+  getCurrentUser() {
+    return withTryCatch(
+      async () => (await http.get("/auth/me")).data,
+      "Failed to fetch current user"
+    );
   },
 
-  // Chat
-  async sendMessage(message: string, conversationId?: string, tripId?: string) {
-    const response = await fetch(`${API_BASE}/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message, conversationId, tripId }),
-    });
-    return response.json();
+  getBillingUsage() {
+    return withTryCatch(
+      async () => (await http.get("/billing/usage")).data,
+      "Failed to fetch billing usage"
+    );
   },
 
-  // Trips
-  async generateTrip(data: any) {
-    const response = await fetch(`${API_BASE}/trips/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    return response.json();
+  sendMessage(message: string, conversationId?: string, tripId?: string) {
+    return withTryCatch(
+      async () =>
+        (await http.post("/chat", { message, conversationId, tripId })).data,
+      "Failed to send chat message"
+    );
   },
 
-  async getTrips(status?: string, page = 1, limit = 10) {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-    if (status) params.append('status', status);
-
-    const response = await fetch(`${API_BASE}/trips?${params.toString()}`);
-    return response.json();
+  generateTrip(data: Record<string, unknown>) {
+    return withTryCatch(
+      async () => (await http.post("/trips/generate", data)).data,
+      "Failed to generate trip"
+    );
   },
 
-  async getTrip(id: string) {
-    const response = await fetch(`${API_BASE}/trips/${id}`);
-    return response.json();
+  getTrips(status?: string, page = 1, limit = 10) {
+    return withTryCatch(
+      async () =>
+        (
+          await http.get("/trips", {
+            params: { status, page, limit },
+          })
+        ).data,
+      "Failed to fetch trips"
+    );
   },
 
-  async updateTrip(id: string, data: any) {
-    const response = await fetch(`${API_BASE}/trips/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    return response.json();
+  getTrip(id: string) {
+    return withTryCatch(
+      async () => (await http.get(`/trips/${id}`)).data,
+      "Failed to fetch trip"
+    );
   },
 
-  async deleteTrip(id: string) {
-    const response = await fetch(`${API_BASE}/trips/${id}`, {
-      method: 'DELETE',
-    });
-    return response.json();
+  updateTrip(id: string, data: Record<string, unknown>) {
+    return withTryCatch(
+      async () => (await http.put(`/trips/${id}`, data)).data,
+      "Failed to update trip"
+    );
   },
 
-  // Activities
-  async updateActivity(tripId: string, activityId: string, data: any) {
-    const response = await fetch(`${API_BASE}/trips/${tripId}/activities/${activityId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    return response.json();
+  deleteTrip(id: string) {
+    return withTryCatch(
+      async () => (await http.delete(`/trips/${id}`)).data,
+      "Failed to delete trip"
+    );
+  },
+
+  updateActivity(
+    tripId: string,
+    activityId: string,
+    data: Record<string, unknown>
+  ) {
+    return withTryCatch(
+      async () =>
+        (await http.put(`/trips/${tripId}/activities/${activityId}`, data))
+          .data,
+      "Failed to update activity"
+    );
   },
 };
+
+export const apiClient = ApiService;

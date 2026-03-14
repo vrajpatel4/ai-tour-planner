@@ -1,14 +1,22 @@
 import { connectDB } from "../db";
 import User from "../models/User";
 
-export async function createUser(user: any) {
+type CreateUserInput = {
+  clerkId: string;
+  email: string;
+  name: string;
+  image?: string;
+  avatar?: string;
+};
+
+export async function createUser(user: CreateUserInput) {
   try {
     await connectDB();
     const userData = await User.create({
-      clerkId: user.id,
+      clerkId: user.clerkId,
       email: user.email,
-      name: `${user.first_name ?? ""} ${user.last_name ?? ""}`,
-      image: user.image_url,
+      name: user.name,
+      avatar: user.avatar || user.image || "",
     });
     return userData;
   } catch (error) {

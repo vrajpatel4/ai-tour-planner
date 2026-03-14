@@ -4,11 +4,18 @@ import { requireAuth } from '@/app/lib/auth';
 import { aiService, AIPreferences } from '@/app/lib/ai';
 import { connectDB } from '@/app/lib/db';
 import Trip from '@/app/lib/models/Trip';
+import { reserveCredits, refundCredits } from "@/app/lib/billing";
 
 export async function POST(request: NextRequest) {
+  let creditReservation:
+    | (Awaited<ReturnType<typeof reserveCredits>> & { allowed?: boolean })
+    | null = null;
+  let creditUserId: string | null = null;
+
   try {
     const user = await requireAuth();
     await connectDB();
+    creditUserId = String(user._id);
 
     const body = await request.json();
     const {
@@ -31,6 +38,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    creditReservation = await reserveCredits(user, 1);
+
+    if (!creditReservation.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "You've reached your monthly prompt limit. Upgrade to continue or wait for your credits to reset.",
+          code: "OUT_OF_CREDITS",
+          planKey: creditReservation.planKey,
+          resetAt: creditReservation.resetAt
+            ? new Date(creditReservation.resetAt).toISOString()
+            : null,
+        },
+        { status: 402 },
+      );
+    }
+
     // Prepare preferences for AI
     const preferences: AIPreferences = {
       destination,
@@ -47,15 +71,12 @@ export async function POST(request: NextRequest) {
     // Generate itinerary using AI
     const aiPlan = await aiService.generateItinerary(preferences);
 
-    // Calculate total days
     const start = new Date(startDate);
-    const end = new Date(endDate);
-    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     // Create trip in database
     const trip = new Trip({
       userId: user._id,
-      clerkUserId: user.clerkUserId,
+      clerkUserId: user.clerkId,
       title: aiPlan.title || `${destination} Trip`,
       description: aiPlan.summary,
       destination,
@@ -111,13 +132,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (creditReservation?.allowed && creditUserId) {
+      await refundCredits(creditUserId, 1);
+    }
+
     console.error('Trip generation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate trip';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     
     return NextResponse.json(
       { 
-        error: error.message || 'Failed to generate trip',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorStack : undefined
       },
       { status: 500 }
     );

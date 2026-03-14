@@ -9,16 +9,16 @@ export async function getCurrentUser() {
     
     const { userId } = await auth();
     if (!userId) return null;
-
+    
     const clerkUser = await currentUser();
     if (!clerkUser) return null;
-
+    
     // Find or create user in MongoDB
-    let user = await User.findOne({ clerkUserId: userId });
+    let user = await User.findOne({ clerkId: userId });
 
     if (!user) {
       user = await User.create({
-        clerkUserId: userId,
+        clerkId: userId,
         email: clerkUser.emailAddresses[0]?.emailAddress || '',
         name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || clerkUser.username || 'User',
         avatar: clerkUser.imageUrl,
