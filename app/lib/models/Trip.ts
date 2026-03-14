@@ -12,6 +12,7 @@ const ActivitySchema = new mongoose.Schema({
   location: String,
   cost: Number,
   duration: String,
+  image: String,
   bookingInfo: mongoose.Schema.Types.Mixed,
   status: {
     type: String,
@@ -25,6 +26,27 @@ const DaySchema = new mongoose.Schema({
   title: String,
   date: Date,
   activities: [ActivitySchema],
+});
+
+const PlaceSchema = new mongoose.Schema({
+  name: String,
+  description: String,
+  image: String,
+  geoCoordinates: {
+    lat: Number,
+    lng: Number,
+  },
+});
+
+const HotelSchema = new mongoose.Schema({
+  name: String,
+  price: String,
+  rating: Number,
+  image: String,
+  geoCoordinates: {
+    lat: Number,
+    lng: Number,
+  },
 });
 
 const TripSchema = new mongoose.Schema({
@@ -68,6 +90,10 @@ const TripSchema = new mongoose.Schema({
     default: 'draft',
   },
   preferences: mongoose.Schema.Types.Mixed,
+  images: [String],
+  highlights: [String],
+  places: [PlaceSchema],
+  hotels: [HotelSchema],
   days: [DaySchema],
   totalCost: {
     type: Number,
