@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/db";
 import Trip from "@/app/lib/models/Trip";
 
+export const runtime = "nodejs";
+
 type RouteContext = {
   params: Promise<{ id: string }>;
 };

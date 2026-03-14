@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   const payload = await req.text();
   const headerPayload = await headers();

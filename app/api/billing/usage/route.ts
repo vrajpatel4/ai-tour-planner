@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/app/lib/auth";
 import { ensureBillingState, PLAN_DEFINITIONS } from "@/app/lib/billing";
 
+export const runtime = "nodejs";
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {

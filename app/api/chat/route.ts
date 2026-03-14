@@ -7,6 +7,8 @@ import Conversation from "@/app/lib/models/Conversation";
 import Trip from "@/app/lib/models/Trip";
 import { reserveCredits, refundCredits } from "@/app/lib/billing";
 
+export const runtime = "nodejs";
+
 type AssistantQuestion = {
   question: string;
   options?: string[];
