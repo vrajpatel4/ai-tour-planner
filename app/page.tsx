@@ -7,19 +7,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Stars } from "lucide-react";
 import { Card, Carousel } from "@/components/ui/apple-cards-carousel";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function Home() {
   const { user } = useUser();
   const [query, setQuery] = useState("");
   const { openSignIn } = useClerk();
+  const router = useRouter();
 
   const handleGenerate = () => {
     if (!user) {
       openSignIn()
       return;
     }
-
-    console.log("Send to AI:", query);
+    const encoded = encodeURIComponent(query.trim());
+    router.push(encoded ? `/plan-trip-new?q=${encoded}` : "/plan-trip");
   };
 
   const DummyContent = () => {
@@ -41,7 +43,7 @@ export default function Home() {
                 problem. Langotiya jeetu ka mara hua yaar is ready to capture
                 every thought.
               </p>
-              <img
+              <Image
                 src="https://assets.aceternity.com/macbook.png"
                 alt="Macbook mockup from Aceternity UI"
                 height="500"
@@ -56,51 +58,50 @@ export default function Home() {
   };
 
   const suggestedPlaces = [
-    {
-      category: "Artificial Intelligence",
-      title: "You can do more with AI.",
-      src: "https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=3556&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      content: <DummyContent />,
-    },
-    {
-      category: "Productivity",
-      title: "Enhance your productivity.",
-      src: "https://images.unsplash.com/photo-1531554694128-c4c6665f59c2?q=80&w=3387&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      content: <DummyContent />,
-    },
-    {
-      category: "Product",
-      title: "Launching the new Apple Vision Pro.",
-      src: "https://images.unsplash.com/photo-1713869791518-a770879e60dc?q=80&w=2333&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      content: <DummyContent />,
-    },
-
-    {
-      category: "Product",
-      title: "Maps for your iPhone 15 Pro Max.",
-      src: "https://images.unsplash.com/photo-1599202860130-f600f4948364?q=80&w=2515&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      content: <DummyContent />,
-    },
-    {
-      category: "iOS",
-      title: "Photography just got better.",
-      src: "https://images.unsplash.com/photo-1602081957921-9137a5d6eaee?q=80&w=2793&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      content: <DummyContent />,
-    },
-    {
-      category: "Hiring",
-      title: "Hiring for a Staff Software Engineer",
-      src: "https://images.unsplash.com/photo-1511984804822-e16ba72f5848?q=80&w=2048&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      content: <DummyContent />,
-    },
-  ];
+  {
+    category: "France",
+    title: "Explore the beauty of Paris and the Eiffel Tower.",
+    src: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2070&auto=format&fit=crop",
+    content: <DummyContent />,
+  },
+  {
+    category: "Italy",
+    title: "Discover the historic canals of Venice.",
+    src: "https://images.unsplash.com/photo-1505761671935-60b3a7427bad?q=80&w=2070&auto=format&fit=crop",
+    content: <DummyContent />,
+  },
+  {
+    category: "Japan",
+    title: "Experience the vibrant culture of Tokyo.",
+    src: "https://images.unsplash.com/photo-1549692520-acc6669e2f0c?q=80&w=2070&auto=format&fit=crop",
+    content: <DummyContent />,
+  },
+  {
+    category: "India",
+    title: "Visit the majestic Taj Mahal in Agra.",
+    src: "https://images.unsplash.com/photo-1598324789736-4861f89564a0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHRhaiUyMG1haGFsfGVufDB8fDB8fHww",
+    content: <DummyContent />,
+  },
+  {
+    category: "Switzerland",
+    title: "Enjoy breathtaking views of the Swiss Alps.",
+    src: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop",
+    content: <DummyContent />,
+  },
+  {
+    category: "Maldives",
+    title: "Relax in the tropical paradise of Maldives beaches.",
+    src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2070&auto=format&fit=crop",
+    content: <DummyContent />,
+  },
+];
 
   const cards = suggestedPlaces.map((card, index) => (
     <Card key={card.title} card={card} index={index} />
   ));
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-sky-100 via-white to-white relative overflow-hidden">
+    <main className="min-h-screen bg-linear-to-b from-sky-100 via-white to-white relative overflow-hidden">
       {/* Animated Background Shapes */}
       <div className="absolute top-10 -left-10 w-60 h-60 bg-sky-200 rounded-full blur-3xl opacity-40" />
       <div className="absolute bottom-10 right-0 w-72 h-72 bg-blue-200 rounded-full blur-3xl opacity-40" />

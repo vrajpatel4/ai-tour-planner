@@ -48,6 +48,12 @@ export default function UserMenu() {
           </DropdownMenuItem>
         </Link>
 
+        <Link href="/pricing">
+          <DropdownMenuItem className="cursor-pointer">
+            Billing & Plans
+          </DropdownMenuItem>
+        </Link>
+
         <DropdownMenuSeparator />
 
         <SignOutButton>

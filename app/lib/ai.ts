@@ -1,6 +1,6 @@
 // app/lib/ai.ts
-import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export interface AIPreferences {
   destination: string;
@@ -9,15 +9,21 @@ export interface AIPreferences {
   budget: number;
   travelers: number;
   interests: string[];
-  pace: 'relaxed' | 'moderate' | 'fast';
-  accommodation: 'budget' | 'mid-range' | 'luxury';
+  pace: "relaxed" | "moderate" | "fast";
+  accommodation: "budget" | "mid-range" | "luxury";
   dietaryRestrictions?: string[];
 }
 
 export interface Activity {
   time: string;
   name: string;
-  type: 'dining' | 'sightseeing' | 'activity' | 'transport' | 'accommodation' | 'leisure';
+  type:
+    | "dining"
+    | "sightseeing"
+    | "activity"
+    | "transport"
+    | "accommodation"
+    | "leisure";
   description: string;
   location?: string;
   cost?: number;
@@ -42,13 +48,23 @@ export interface TripPlan {
   packingList: string[];
 }
 
+export type TMessage = Array<{
+  role: "system" | "user" | "assistant";
+  content: string;
+}>;
+
 class OpenAIService {
   private client: OpenAI;
+  private model: string;
 
   constructor() {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY missing");
+    }
     this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY!,
+      apiKey: process.env.OPENAI_API_KEY,
     });
+    this.model = process.env.OPENAI_MODEL || "gpt-4o-mini";
   }
 
   async generateItinerary(preferences: AIPreferences): Promise<TripPlan> {
@@ -91,85 +107,228 @@ class OpenAIService {
     Preferences:
     - Pace: ${preferences.pace}
     - Accommodation: ${preferences.accommodation}
-    - Interests: ${preferences.interests.join(', ')}
-    ${preferences.dietaryRestrictions ? `- Dietary restrictions: ${preferences.dietaryRestrictions.join(', ')}` : ''}
+    - Interests: ${preferences.interests.join(", ")}
+    ${preferences.dietaryRestrictions ? `- Dietary restrictions: ${preferences.dietaryRestrictions.join(", ")}` : ""}
     
     Make the itinerary practical and enjoyable. Include a mix of activities, meals, and relaxation time.`;
 
     try {
       const response = await this.client.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: this.model,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
-        response_format: { type: "json_object" }
+        response_format: { type: "json_object" },
       });
 
       const content = response.choices[0].message.content;
-      if (!content) throw new Error('No response from AI');
+      if (!content) throw new Error("No response from AI");
 
-      return JSON.parse(content);
+      try {
+        return JSON.parse(content);
+      } catch {
+        throw new Error("Invalid JSON returned by AI");
+      }
     } catch (error) {
-      console.error('OpenAI Error:', error);
-      throw new Error('Failed to generate itinerary');
+      console.error("OpenAI Error:", error);
+      throw new Error("Failed to generate itinerary");
     }
   }
 
-  async chatResponse(messages: Array<{role: string, content: string}>, context?: any): Promise<string> {
+  async chatResponse(messages: TMessage, context?: any): Promise<string> {
     const systemMessage = {
       role: "system",
       content: `You are a helpful travel assistant. Help users plan trips, suggest destinations, 
-      create itineraries, and answer travel questions. Be enthusiastic and detailed.
+      create itineraries, and answer travel questions.
+      Keep answers practical and concise.
+      Use plain text only. Do not use markdown headings, bold markers, or bullet symbols like * and #.
+      Prefer short paragraphs and numbered lines when useful.
       
-      Current context: ${JSON.stringify(context || {})}`
+      Current context: ${JSON.stringify(context || {})}`,
     };
 
-    const response = await this.client.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+    const response = await (this.client.chat.completions as any).create({
+      model: this.model,
       messages: [systemMessage, ...messages],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 1000,
     });
 
-    return response.choices[0].message.content || 'I apologize, but I encountered an error.';
+    return (
+      response.choices[0].message.content ||
+      "I apologize, but I encountered an error."
+    );
   }
 }
 
 // Factory pattern for multiple AI providers
 export class AIService {
-  private provider: 'openai' | 'gemini';
-  private openai: OpenAIService;
-  private gemini: any;
+  private provider: "openai" | "gemini";
+  private openai?: OpenAIService;
+  private gemini?: any;
 
-  constructor(provider: 'openai' | 'gemini' = 'openai') {
+  constructor(provider: "openai" | "gemini" = "openai") {
     this.provider = provider;
-    this.openai = new OpenAIService();
-    
-    if (provider === 'gemini' && process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
-      this.gemini = genAI.getGenerativeModel({ model: "gemini-pro" });
+    if (provider === "openai") {
+      this.openai = new OpenAIService();
+    }
+
+    if (provider === "gemini" && process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      const genAI = new GoogleGenerativeAI(
+        process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+      );
+
+      this.gemini = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL ?? "gemini-1.5-flash",
+      });
     }
   }
 
   async generateItinerary(preferences: AIPreferences): Promise<TripPlan> {
-    if (this.provider === 'openai') {
-      return this.openai.generateItinerary(preferences);
-    } else {
-      // Implement Gemini fallback
+    if (this.provider === "openai") {
+      if (!this.openai) throw new Error("OpenAI not initialized");
       return this.openai.generateItinerary(preferences);
     }
+
+    if (!this.gemini) {
+      throw new Error("Gemini not configured");
+    }
+
+    const prompt = `Create a trip itinerary for:
+    Destination: ${preferences.destination}
+    Budget: ${preferences.budget}
+    Travelers: ${preferences.travelers}
+    Interests: ${preferences.interests.join(", ")}
+
+    Return JSON itinerary.`;
+
+    const result = await this.gemini.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    return JSON.parse(text);
   }
 
-  async chat(messages: Array<{role: string, content: string}>, context?: any): Promise<string> {
-    if (this.provider === 'openai') {
-      return this.openai.chatResponse(messages, context);
-    } else {
-      // Implement Gemini fallback
-      return this.openai.chatResponse(messages, context);
+  async chat(messages: TMessage, context?: any): Promise<any> {
+  if (this.provider === "openai") {
+    if (!this.openai) throw new Error("OpenAI not initialized");
+    return this.openai.chatResponse(messages, context);
+  }
+
+  if (!this.gemini) {
+    throw new Error("Gemini not initialized");
+  }
+
+  const systemPrompt = `
+You are an AI travel planning assistant.
+
+Your job is to collect trip information step-by-step and then generate a travel plan.
+
+First collect:
+- destination
+- duration
+- budget
+- travelers
+- travel style
+
+When information is missing ask questions.
+
+When enough information is collected generate a trip plan.
+
+Return ONLY JSON in this format:
+
+{
+  "status": "collecting | ready",
+  "message": "Friendly response to the user",
+
+  "questions":[
+    {
+      "question":"Where would you like to travel?",
+      "options":["Bali","Dubai","Thailand","Maldives"]
     }
+  ],
+
+  "tripPlan":{
+    "title":"Trip title",
+    "destination":"Place",
+    "duration":"5 days",
+    "budget":"₹30000",
+
+    "images":[
+      "https://source.unsplash.com/800x600/?beach",
+      "https://source.unsplash.com/800x600/?tropical,island"
+    ],
+
+    "highlights":[
+      "Beach sunsets",
+      "Water sports"
+    ],
+
+    "places":[
+      {
+        "name":"Baga Beach",
+        "description":"Famous beach with nightlife",
+        "image":"https://source.unsplash.com/400x300/?beach"
+      }
+    ],
+
+    "hotels":[
+      {
+        "name":"Luxury Beach Resort",
+        "price":"₹8000 per night",
+        "rating":4.5,
+        "image":"https://source.unsplash.com/400x300/?resort"
+      }
+    ],
+
+    "days":[
+      {
+        "day":1,
+        "title":"Arrival",
+        "activities":[
+          "Airport pickup",
+          "Hotel check-in",
+          "Beach walk"
+        ]
+      }
+    ]
   }
 }
 
-export const aiService = new AIService('openai');
+Rules:
+- If trip info missing → status = collecting
+- If ready → status = ready and include tripPlan
+- Always return JSON only
+`;
+
+  const conversation = messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+
+  const prompt = `${systemPrompt}\nConversation:\n${conversation}`;
+
+  const result = await this.gemini.generateContent(prompt);
+  const response = await result.response;
+
+  const text = response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      status: "collecting",
+      message: text,
+    };
+  }
+}
+}
+
+export const aiService = new AIService(
+  process.env.AI_PROVIDER === "gemini"
+    ? "gemini"
+    : process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      ? "gemini"
+      : "openai",
+);

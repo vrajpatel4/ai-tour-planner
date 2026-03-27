@@ -5,6 +5,7 @@ import React, {
   useState,
   createContext,
   useContext,
+  ReactNode,
 } from "react";
 import {
   IconArrowNarrowLeft,
@@ -17,7 +18,7 @@ import Image, { ImageProps } from "next/image";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 
 interface CarouselProps {
-  items: JSX.Element[];
+  items: ReactNode[];
   initialScroll?: number;
 }
 
@@ -121,7 +122,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
                     duration: 0.5,
                     delay: 0.2 * index,
                     ease: "easeOut",
-                    once: true,
+                    // once: true,
                   },
                 }}
                 key={"card" + index}
@@ -163,7 +164,7 @@ export const Card = ({
   layout?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const { onCardClose, currentIndex } = useContext(CarouselContext);
 
   useEffect(() => {
@@ -183,7 +184,7 @@ export const Card = ({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  useOutsideClick(containerRef, () => handleClose());
+  useOutsideClick(containerRef as any, () => handleClose());
 
   const handleOpen = () => {
     setOpen(true);
@@ -273,24 +274,30 @@ export const BlurImage = ({
   src,
   className,
   alt,
+  sizes,
+  onLoad,
   ...rest
 }: ImageProps) => {
   const [isLoading, setLoading] = useState(true);
+
+  const handleLoad: React.ReactEventHandler<HTMLImageElement> = (event) => {
+    setLoading(false);
+    onLoad?.(event);
+  };
+
   return (
-    <img
+    <Image
       className={cn(
         "h-full w-full transition duration-300",
         isLoading ? "blur-sm" : "blur-0",
         className,
       )}
-      onLoad={() => setLoading(false)}
+      onLoad={handleLoad}
       src={src as string}
       width={width}
       height={height}
-      loading="lazy"
-      decoding="async"
-      blurDataURL={typeof src === "string" ? src : undefined}
       alt={alt ? alt : "Background of a beautiful view"}
+      sizes={sizes ?? "(max-width: 768px) 224px, 384px"}
       {...rest}
     />
   );
