@@ -1,12 +1,12 @@
 // app/lib/db.ts
 import mongoose from 'mongoose';
 
-function getMongoUri(): string {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error('Please define the MONGODB_URI environment variable');
-  }
-  return uri;
+const MONGODB_URI = process.env.MONGODB_URI
+
+console.log(MONGODB_URI)
+
+if (!MONGODB_URI) {
+  throw new Error('Please define the MONGODB_URI environment variable');
 }
 
 const MONGODB_URI = getMongoUri();
