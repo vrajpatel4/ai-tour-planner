@@ -1,7 +1,7 @@
 // app/lib/db.ts
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://vrajpatel:vrajpatel4@cluster0.j3qqf9l.mongodb.net/?appName=Cluster0";
+const MONGODB_URI = process.env.MONGODB_URI
 
 console.log(MONGODB_URI)
 
