@@ -20,8 +20,8 @@ import Link from "next/link";
 import ChatBox, { type UiMessage } from "./_component/ChatBox";
 import { ApiService } from "@/app/lib/api-client";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 const TripMap = dynamic(() => import("./_component/TripMap"), {
   ssr: false,
@@ -134,7 +134,11 @@ type BillingUsageResponse = {
   resetAt: string | null;
 };
 
-const PlanTripClient = () => {
+type PlanTripClientProps = {
+  hasPremiumPlan: boolean;
+};
+
+const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [messages, setMessages] = useState<UiMessage[]>([
@@ -389,6 +393,23 @@ const PlanTripClient = () => {
           </div>
         )}
 
+        {hasPremiumPlan ? (
+          <div className="mb-6 rounded-2xl border bg-white/80 p-4 text-sm text-slate-700 shadow-sm">
+            Premium tools unlocked: interactive map view and enhanced trip
+            exploration.
+          </div>
+        ) : (
+          <div className="mb-6 rounded-2xl border bg-white/80 p-4 text-sm text-slate-600 shadow-sm">
+            Unlock premium map view and extended itinerary tools with a Starter
+            or Pro plan.
+            <div className="mt-3">
+              <Button asChild size="sm">
+                <Link href="/pricing">Upgrade</Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-6 md:grid-cols-2">
           <ChatBox
             messages={messages}
@@ -527,11 +548,22 @@ const PlanTripClient = () => {
                       <Map size={16} />
                       Map View
                     </div>
-                    <TripMap 
-                      places={tripPlan.places || []}
-                      hotels={tripPlan.hotels || []}
-                      className="h-56 sm:h-64 rounded-xl z-0 overflow-hidden relative"
-                    />
+                    {hasPremiumPlan ? (
+                      <TripMap
+                        places={tripPlan.places || []}
+                        hotels={tripPlan.hotels || []}
+                        className="h-56 sm:h-64 rounded-xl z-0 overflow-hidden relative"
+                      />
+                    ) : (
+                      <div className="rounded-xl border bg-slate-50 p-4 text-sm text-slate-600">
+                        Map view is available on Starter and Pro plans.
+                        <div className="mt-3">
+                          <Button asChild size="sm">
+                            <Link href="/pricing">Upgrade</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

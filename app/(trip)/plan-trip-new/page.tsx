@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { auth } from "@clerk/nextjs/server";
 
 import PlanTripClient from "./PlanTripClient";
 
@@ -13,10 +14,13 @@ const Loading = () => (
   </div>
 );
 
-export default function Page() {
+export default async function Page() {
+  const { has } = await auth();
+  const hasPremiumPlan = has({ plan: "starter" }) || has({ plan: "pro" });
+
   return (
     <Suspense fallback={<Loading />}>
-      <PlanTripClient />
+      <PlanTripClient hasPremiumPlan={hasPremiumPlan} />
     </Suspense>
   );
 }
