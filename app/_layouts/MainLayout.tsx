@@ -8,10 +8,8 @@ type TMainLayout = PropsWithChildren;
 const MainLayout: React.FC<TMainLayout> = ({ children }) => {
   return (
     <SiteConfigProvider>
-      <MaintenanceGate>
-        <Navbar />
-        {children}
-      </MaintenanceGate>
+      <Navbar />
+      <MaintenanceGate>{children}</MaintenanceGate>
     </SiteConfigProvider>
   );
 };

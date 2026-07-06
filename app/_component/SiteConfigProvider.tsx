@@ -15,6 +15,7 @@ import {
   type SiteConfig,
 } from "@/app/lib/site-config-defaults";
 import { ApiService } from "@/app/lib/api-client";
+import LoadingOverlay from "@/components/ui/loader";
 
 type SiteConfigContextValue = {
   config: SiteConfig;
@@ -85,6 +86,7 @@ export function SiteConfigProvider({
 
   return (
     <SiteConfigContext.Provider value={value}>
+      {loading && <LoadingOverlay/>}
       {children}
     </SiteConfigContext.Provider>
   );
