@@ -14,15 +14,23 @@ import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import UserMenu from "./UserMenu";
 import { useSiteConfig } from "./SiteConfigProvider";
+import type { FeatureKey } from "@/app/lib/site-config-defaults";
 
-const navLinks = [
-  { id: 1, name: "Home", path: "/", feature: null },
+type NavLink = {
+  id: number;
+  name: string;
+  path: string;
+  feature?: FeatureKey;
+};
+
+const navLinks: NavLink[] = [
+  { id: 1, name: "Home", path: "/" },
   { id: 2, name: "Pricing", path: "/pricing", feature: "pricing" },
-  { id: 3, name: "Admin", path: "/admin", feature: null },
+  { id: 3, name: "Admin", path: "/admin" },
 ];
 
 type NavCenterProps = {
-  links: typeof navLinks;
+  links: NavLink[];
 };
 
 const NavCenter = ({ links }: NavCenterProps) => (
@@ -43,9 +51,15 @@ const Navbar = () => {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const { config } = useSiteConfig();
-  const links = navLinks.filter(
-    (link) => !link.feature || config.features[link.feature].enabled,
-  );
+  const { user } = useUser();
+  const isAdmin = user?.publicMetadata?.isAdmin === true;
+  const links = navLinks.filter((link) => {
+    if (link.name === "Admin" && !isAdmin) {
+      return false;
+    }
+
+    return !link.feature || config.features[link.feature].enabled;
+  });
   const plannerEnabled = config.features.aiPlanner.enabled;
 
   const handleCreateTrip = () => {
@@ -134,9 +148,7 @@ const Navbar = () => {
           <div className="mt-4 flex flex-col gap-3">
             <SignedOut>
               <SignInButton mode="modal">
-                <Button className="w-full rounded-md text-white">
-                  Login
-                </Button>
+                <Button className="w-full rounded-md text-white">Login</Button>
               </SignInButton>
             </SignedOut>
 

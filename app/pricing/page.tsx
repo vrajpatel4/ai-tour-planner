@@ -8,21 +8,30 @@ import {
   SignInButton,
 } from "@clerk/nextjs";
 import { SubscriptionDetailsButton } from "@clerk/nextjs/experimental";
+
+import FeatureUnavailable from "@/app/_component/FeatureUnavailable";
+import { useSiteConfig } from "@/app/_component/SiteConfigProvider";
+import { PLAN_ORDER } from "@/app/lib/site-config-defaults";
 import { Button } from "@/components/ui/button";
 
 export default function PricingPage() {
+  const { config } = useSiteConfig();
   const billingEnabled =
     process.env.NEXT_PUBLIC_CLERK_BILLING_ENABLED === "true";
+  const pricingFeature = config.features.pricing;
+
+  if (!pricingFeature.enabled) {
+    return (
+      <FeatureUnavailable
+        title={pricingFeature.unavailableTitle}
+        message={pricingFeature.unavailableMessage}
+      />
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f5f9ff]">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 -left-20 h-96 w-96 rounded-full bg-cyan-300/35 blur-3xl" />
-        <div className="absolute top-20 right-0 h-80 w-80 rounded-full bg-blue-300/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-indigo-300/20 blur-3xl" />
-      </div>
-
-      <div className="relative mx-auto max-w-5xl space-y-8 px-4 py-10 md:px-8">
+      <div className="relative mx-auto max-w-6xl space-y-8 px-4 py-10 md:px-8">
         <div className="flex flex-col gap-3 text-center">
           <p className="text-sm uppercase tracking-[0.2em] text-slate-500">
             Billing & Plans
@@ -30,9 +39,38 @@ export default function PricingPage() {
           <h1 className="text-3xl font-semibold text-slate-900 md:text-4xl">
             Pick a plan that matches your travel style
           </h1>
-          <p className="text-base text-slate-600">
-            Upgrade anytime to unlock more AI prompts and premium trip planning.
+          <p className="mx-auto max-w-2xl text-base text-slate-600">
+            {config.pricing.billingNote}
           </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {PLAN_ORDER.map((planKey) => {
+            const plan = config.pricing.plans[planKey];
+
+            return (
+              <div
+                key={planKey}
+                className="rounded-2xl border bg-white/90 p-5 shadow-sm"
+              >
+                <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
+                  {plan.label}
+                </p>
+                <div className="mt-3 flex items-end gap-1">
+                  <span className="text-3xl font-semibold text-slate-900">
+                    {config.pricing.currency} {plan.monthlyPrice}
+                  </span>
+                  <span className="pb-1 text-sm text-slate-500">/ month</span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  {plan.description}
+                </p>
+                <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {plan.monthlyCredits} AI credits monthly
+                </p>
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -55,8 +93,8 @@ export default function PricingPage() {
 
         {!billingEnabled && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Billing is disabled. Enable billing in Clerk and set
-            NEXT_PUBLIC_CLERK_BILLING_ENABLED=true to show subscription plans.
+            Billing is disabled. Set NEXT_PUBLIC_CLERK_BILLING_ENABLED=true
+            after Clerk billing is configured.
           </div>
         )}
 

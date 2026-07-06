@@ -1,172 +1,210 @@
 "use client";
 
-import { useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Stars } from "lucide-react";
-import { Card, Carousel } from "@/components/ui/apple-cards-carousel";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import FeatureUnavailable from "@/app/_component/FeatureUnavailable";
+import { useSiteConfig } from "@/app/_component/SiteConfigProvider";
+import { Button } from "@/components/ui/button";
+import { Card, Carousel } from "@/components/ui/apple-cards-carousel";
+import { Textarea } from "@/components/ui/textarea";
+
+type DestinationCard = {
+  category: string;
+  title: string;
+  src: string;
+  description: string;
+};
+
+const DESTINATION_CARDS: Record<string, DestinationCard> = {
+  india: {
+    category: "India",
+    title: "Palaces, food trails, hill stations, and slow cultural days.",
+    src: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?q=80&w=1600&auto=format&fit=crop",
+    description:
+      "Blend classic landmarks with local markets, food walks, and realistic transfer times.",
+  },
+  maldives: {
+    category: "Maldives",
+    title: "Easy island days with lagoons, reefs, and sunset dinners.",
+    src: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=1600&auto=format&fit=crop",
+    description:
+      "Plan villa stays, snorkeling windows, ferry or seaplane transfers, and quiet downtime.",
+  },
+  dubai: {
+    category: "Dubai",
+    title: "City views, desert evenings, shopping, and family-friendly stops.",
+    src: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1600&auto=format&fit=crop",
+    description:
+      "Balance iconic attractions with practical budgets, commute times, and dining options.",
+  },
+  bali: {
+    category: "Bali",
+    title: "Rice terraces, beaches, temples, cafes, and wellness days.",
+    src: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1600&auto=format&fit=crop",
+    description:
+      "Shape your route around Ubud, beach towns, waterfalls, and relaxed recovery time.",
+  },
+  thailand: {
+    category: "Thailand",
+    title: "Street food, island hopping, temples, and night markets.",
+    src: "https://images.unsplash.com/photo-1508009603885-50cf7c579365?q=80&w=1600&auto=format&fit=crop",
+    description:
+      "Choose the right mix of Bangkok, beaches, culture, nightlife, and travel pace.",
+  },
+  paris: {
+    category: "Paris",
+    title: "Museums, cafes, river walks, neighborhoods, and day trips.",
+    src: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1600&auto=format&fit=crop",
+    description:
+      "Turn a classic Paris idea into a day-by-day plan with reservations and gentle pacing.",
+  },
+};
+
+const fallbackDestination = (name: string): DestinationCard => ({
+  category: name,
+  title: `Plan a practical, memorable ${name} itinerary with AI.`,
+  src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+  description:
+    "Use your budget, dates, interests, and travel style to build a route that feels realistic.",
+});
+
+function DestinationContent({ card }: { card: DestinationCard }) {
+  return (
+    <div className="space-y-5">
+      <p className="mx-auto max-w-3xl text-base leading-7 text-neutral-600 dark:text-neutral-300 md:text-xl">
+        {card.description}
+      </p>
+      <Image
+        src={card.src}
+        alt={card.title}
+        height={520}
+        width={820}
+        className="mx-auto aspect-video w-full max-w-3xl rounded-2xl object-cover"
+      />
+    </div>
+  );
+}
 
 export default function Home() {
   const { user } = useUser();
-  const [query, setQuery] = useState("");
   const { openSignIn } = useClerk();
+  const { config } = useSiteConfig();
+  const [query, setQuery] = useState("");
   const router = useRouter();
 
+  const plannerFeature = config.features.aiPlanner;
+  const plannerEnabled = plannerFeature.enabled;
+
   const handleGenerate = () => {
+    if (!plannerEnabled) return;
+
     if (!user) {
-      openSignIn()
+      openSignIn();
       return;
     }
+
     const encoded = encodeURIComponent(query.trim());
-    router.push(encoded ? `/plan-trip-new?q=${encoded}` : "/plan-trip");
+    router.push(encoded ? `/plan-trip-new?q=${encoded}` : "/plan-trip-new");
   };
 
-  const DummyContent = () => {
-    return (
-      <>
-        {[...new Array(3).fill(1)].map((_, index) => {
-          return (
-            <div
-              key={"dummy-content" + index}
-              className="bg-[#F5F5F7] dark:bg-neutral-800 p-8 md:p-14 rounded-3xl mb-4"
-            >
-              <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-2xl font-sans max-w-3xl mx-auto">
-                <span className="font-bold text-neutral-700 dark:text-neutral-200">
-                  The first rule of Apple club is that you boast about Apple
-                  club.
-                </span>{" "}
-                Keep a journal, quickly jot down a grocery list, and take
-                amazing class notes. Want to convert those notes to text? No
-                problem. Langotiya jeetu ka mara hua yaar is ready to capture
-                every thought.
-              </p>
-              <Image
-                src="https://assets.aceternity.com/macbook.png"
-                alt="Macbook mockup from Aceternity UI"
-                height="500"
-                width="500"
-                className="md:w-1/2 md:h-1/2 h-full w-full mx-auto object-contain"
-              />
-            </div>
-          );
-        })}
-      </>
-    );
-  };
-
-  const suggestedPlaces = [
-  {
-    category: "France",
-    title: "Explore the beauty of Paris and the Eiffel Tower.",
-    src: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2070&auto=format&fit=crop",
-    content: <DummyContent />,
-  },
-  {
-    category: "Italy",
-    title: "Discover the historic canals of Venice.",
-    src: "https://images.unsplash.com/photo-1505761671935-60b3a7427bad?q=80&w=2070&auto=format&fit=crop",
-    content: <DummyContent />,
-  },
-  {
-    category: "Japan",
-    title: "Experience the vibrant culture of Tokyo.",
-    src: "https://images.unsplash.com/photo-1549692520-acc6669e2f0c?q=80&w=2070&auto=format&fit=crop",
-    content: <DummyContent />,
-  },
-  {
-    category: "India",
-    title: "Visit the majestic Taj Mahal in Agra.",
-    src: "https://images.unsplash.com/photo-1598324789736-4861f89564a0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHRhaiUyMG1haGFsfGVufDB8fDB8fHww",
-    content: <DummyContent />,
-  },
-  {
-    category: "Switzerland",
-    title: "Enjoy breathtaking views of the Swiss Alps.",
-    src: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop",
-    content: <DummyContent />,
-  },
-  {
-    category: "Maldives",
-    title: "Relax in the tropical paradise of Maldives beaches.",
-    src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2070&auto=format&fit=crop",
-    content: <DummyContent />,
-  },
-];
+  const suggestedPlaces = config.ai.suggestedOptions.slice(0, 6).map((place) => {
+    const key = place.trim().toLowerCase();
+    return DESTINATION_CARDS[key] || fallbackDestination(place);
+  });
 
   const cards = suggestedPlaces.map((card, index) => (
-    <Card key={card.title} card={card} index={index} />
+    <Card
+      key={card.category}
+      card={{ ...card, content: <DestinationContent card={card} /> }}
+      index={index}
+    />
   ));
 
   return (
-    <main className="min-h-screen bg-linear-to-b from-sky-100 via-white to-white relative overflow-hidden">
-      {/* Animated Background Shapes */}
-      <div className="absolute top-10 -left-10 w-60 h-60 bg-sky-200 rounded-full blur-3xl opacity-40" />
-      <div className="absolute bottom-10 right-0 w-72 h-72 bg-blue-200 rounded-full blur-3xl opacity-40" />
+    <main
+      className="min-h-screen bg-[var(--site-background)] text-[var(--site-foreground)]"
+      style={{
+        backgroundImage: config.theme.backgroundImageUrl
+          ? `linear-gradient(rgba(247, 251, 255, 0.9), rgba(247, 251, 255, 0.96)), url(${config.theme.backgroundImageUrl})`
+          : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <section className="mx-auto max-w-6xl px-5 pb-8 pt-8 md:px-8 md:pt-12">
+        <div className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border bg-white/85 px-4 py-2 shadow-sm">
+              <Stars className="text-amber-500" size={18} />
+              <p className="text-sm font-medium">{config.home.badgeText}</p>
+            </div>
 
-      {/* Hero Section */}
-      <section className="text-center mt-6 px-5 md:px-20 relative z-10">
-        <div className="flex justify-center">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white shadow rounded-full mb-4 border">
-            <Stars className="text-yellow-500" size={18} />
-            <p className="text-sm font-medium">AI Powered Travel Assistant</p>
+            <h2 className="mt-5 max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
+              {config.home.heroTitle}
+              <span className="text-[var(--site-primary)]">
+                {" "}
+                {config.home.heroAccent}
+              </span>
+            </h2>
+
+            <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
+              {config.home.subtitle}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border bg-white/82 p-5 shadow-xl backdrop-blur">
+            {!plannerEnabled && (
+              <FeatureUnavailable
+                compact
+                title={plannerFeature.unavailableTitle}
+                message={plannerFeature.unavailableMessage}
+              />
+            )}
+
+            <Textarea
+              placeholder={config.home.promptPlaceholder}
+              className="mt-4 h-32 text-base"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              disabled={!plannerEnabled}
+            />
+
+            <Button
+              onClick={handleGenerate}
+              disabled={!plannerEnabled}
+              className="mt-4 h-12 w-full text-base"
+            >
+              {config.home.ctaLabel}
+            </Button>
+
+            {!user && plannerEnabled && (
+              <p className="mt-2 text-center text-sm text-slate-500">
+                {config.home.signedOutHint}
+              </p>
+            )}
           </div>
         </div>
 
-        <h2 className="text-4xl md:text-6xl font-bold leading-tight">
-          Plan Your Next Trip
-          <span className="text-sky-600"> Effortlessly With AI</span>
-        </h2>
-
-        <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Tell us your dream destination, budget, duration or travel style. Our
-          AI builds the smartest travel plan tailored just for you.
-        </p>
-
-        {/* Glass Card */}
-        <div className="max-w-3xl mx-auto mt-8 bg-white/70 backdrop-blur-xl border shadow-xl rounded-2xl p-6">
-          <Textarea
-            placeholder="Example: 5 days trip to Paris under ₹80,000 with cafes, museums & romantic places"
-            className="h-32 text-lg"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-
-          <Button
-            onClick={handleGenerate}
-            className="w-full mt-4 bg-sky-600 hover:bg-sky-700 text-lg h-12"
-          >
-            ✈️ Generate My Travel Plan
-          </Button>
-
-          {!user && (
-            <p className="text-center text-sm text-gray-500 mt-2">
-              Login required before generating a plan.
-            </p>
-          )}
-        </div>
-
-        {/* Trust Section */}
-        <p className="mt-6 text-gray-500">Trusted by travelers worldwide 🌍</p>
+        <p className="mt-6 text-sm text-slate-500">{config.home.trustText}</p>
       </section>
 
-      {/* Suggested Places */}
-      <section className="mt-16 px-8 relative z-10">
-        <h3 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          <MapPin className="text-red-500" />
-          Popular AI Recommendations
-        </h3>
+      <section className="px-5 pb-12 md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <h3 className="flex items-center gap-2 text-2xl font-bold md:text-3xl">
+            <MapPin className="text-red-500" />
+            {config.home.recommendationsTitle}
+          </h3>
 
-        <div>
           <Carousel initialScroll={40} items={cards} />
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-20 py-10 text-center text-gray-500">
-        © 2025 TravelMate AI — Your Smart Travel Companion
+      <footer className="py-8 text-center text-sm text-slate-500">
+        {config.home.footerText}
       </footer>
     </main>
   );

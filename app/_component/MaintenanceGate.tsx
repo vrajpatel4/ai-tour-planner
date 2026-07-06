@@ -47,7 +47,7 @@ export default function MaintenanceGate({
         </p>
 
         {(config.status.expectedBackAt || config.status.supportUrl) && (
-          <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-center gap-3 text-sm text-slate-600">
+          <div className="mx-auto mt-6 flex max-w-xl flex-wrap flex-col items-center justify-center gap-3 text-sm text-slate-600">
             {config.status.expectedBackAt && (
               <span className="inline-flex items-center gap-2 rounded-full border bg-white/90 px-3 py-1">
                 <Clock size={14} />

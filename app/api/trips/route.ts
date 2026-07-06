@@ -3,11 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/app/lib/auth';
 import { connectDB } from '@/app/lib/db';
 import Trip from '@/app/lib/models/Trip';
+import { getSiteConfig, unavailableJsonResponse } from '@/app/lib/site-config';
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   try {
+    const config = await getSiteConfig();
+    const unavailableResponse = unavailableJsonResponse(config, "tripLibrary");
+    if (unavailableResponse) return unavailableResponse;
+
     const user = await requireAuth();
     await connectDB();
 
@@ -51,6 +56,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const config = await getSiteConfig();
+    const unavailableResponse = unavailableJsonResponse(config, "tripLibrary");
+    if (unavailableResponse) return unavailableResponse;
+
     const user = await requireAuth();
     await connectDB();
 

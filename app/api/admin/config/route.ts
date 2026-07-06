@@ -1,51 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { requireAdmin } from "@/app/lib/admin";
-import { getSiteConfig, updateSiteConfig } from "@/app/lib/site-config";
+import { updateSiteConfig } from "@/app/lib/site-config";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
-    const config = await getSiteConfig();
-
-    return NextResponse.json({
-      success: true,
-      config,
+    // Require admin authentication
+    const admin = await requireAdmin();
+    
+    const body = await request.json();
+    
+    // Update the site configuration
+    const updatedConfig = await updateSiteConfig(body, admin.email);
+    
+    return NextResponse.json({ 
+      success: true, 
+      config: updatedConfig,
+      message: "Configuration updated successfully" 
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Admin access required";
-
+    console.error("Error updating site config:", error);
     return NextResponse.json(
-      { error: message },
-      { status: message === "Authentication required" ? 401 : 403 },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to update configuration" 
+      },
+      { status: 500 }
     );
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const admin = await requireAdmin();
-    const body = await request.json();
-    const config = await updateSiteConfig(body?.config ?? body, admin.email);
-
-    return NextResponse.json({
-      success: true,
-      config,
-    });
+    // Require admin authentication
+    await requireAdmin();
+    
+    // Return the current configuration
+    const { getSiteConfig } = await import("@/app/lib/site-config");
+    const config = await getSiteConfig();
+    
+    return NextResponse.json({ config });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to update site config";
-    const status =
-      message === "Authentication required"
-        ? 401
-        : message === "Admin access required"
-          ? 403
-          : 500;
-
-    return NextResponse.json({ error: message }, { status });
+    console.error("Error fetching site config:", error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to fetch configuration" 
+      },
+      { status: 500 }
+    );
   }
 }

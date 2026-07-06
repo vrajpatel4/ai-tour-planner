@@ -1,5 +1,9 @@
 import axios from "axios";
 import { withTryCatch } from "@/app/lib/try-catch";
+import {
+  mergeSiteConfig,
+  type SiteConfig,
+} from "@/app/lib/site-config-defaults";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -13,7 +17,49 @@ const http = axios.create({
   },
 });
 
+type SiteConfigResponse = {
+  success?: boolean;
+  config?: unknown;
+  message?: string;
+};
+
+const readSiteConfig = (payload: SiteConfigResponse): SiteConfig => {
+  if (!payload || typeof payload !== "object" || !("config" in payload)) {
+    throw new Error("Configuration API returned an unexpected response");
+  }
+
+  return mergeSiteConfig(payload.config);
+};
+
 export const ApiService = {
+  getSiteConfig() {
+    return withTryCatch(
+      async () => readSiteConfig((await http.get<SiteConfigResponse>("/config")).data),
+      "Failed to fetch site configuration"
+    );
+  },
+
+  getAdminSiteConfig() {
+    return withTryCatch(
+      async () =>
+        readSiteConfig((await http.get<SiteConfigResponse>("/admin/config")).data),
+      "Failed to fetch admin configuration"
+    );
+  },
+
+  updateSiteConfig(config: SiteConfig) {
+    return withTryCatch(
+      async () =>
+        (
+          await http.post<SiteConfigResponse & { success: boolean }>(
+            "/admin/config",
+            config
+          )
+        ).data,
+      "Failed to save site configuration"
+    );
+  },
+
   getCurrentUser() {
     return withTryCatch(
       async () => (await http.get("/auth/me")).data,
@@ -59,6 +105,13 @@ export const ApiService = {
     return withTryCatch(
       async () => (await http.get(`/trips/${id}`)).data,
       "Failed to fetch trip"
+    );
+  },
+
+  getPublicTrip<TResponse = unknown>(id: string) {
+    return withTryCatch(
+      async () => (await http.get<TResponse>(`/public/trips/${id}`)).data,
+      "Failed to fetch shared trip"
     );
   },
 

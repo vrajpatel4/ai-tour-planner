@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/db";
 import Trip from "@/app/lib/models/Trip";
+import { getSiteConfig, unavailableJsonResponse } from "@/app/lib/site-config";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,10 @@ type RouteContext = {
 
 export async function GET(_: NextRequest, context: RouteContext) {
   try {
+    const config = await getSiteConfig();
+    const unavailableResponse = unavailableJsonResponse(config, "publicSharing");
+    if (unavailableResponse) return unavailableResponse;
+
     await connectDB();
     const { id } = await context.params;
 

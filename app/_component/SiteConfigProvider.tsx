@@ -14,6 +14,7 @@ import {
   mergeSiteConfig,
   type SiteConfig,
 } from "@/app/lib/site-config-defaults";
+import { ApiService } from "@/app/lib/api-client";
 
 type SiteConfigContextValue = {
   config: SiteConfig;
@@ -56,12 +57,8 @@ export function SiteConfigProvider({
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch("/api/config", {
-        cache: "no-store",
-      });
-      if (!response.ok) return;
-      const payload = await response.json();
-      setConfig(mergeSiteConfig(payload.config));
+      const nextConfig = await ApiService.getSiteConfig();
+      setConfig(mergeSiteConfig(nextConfig));
     } catch (error) {
       console.error("Unable to load site config:", error);
     } finally {

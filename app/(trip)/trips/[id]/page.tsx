@@ -17,6 +17,8 @@ import {
 
 import { ApiService } from "@/app/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { useSiteConfig } from "@/app/_component/SiteConfigProvider";
+import FeatureUnavailable from "@/app/_component/FeatureUnavailable";
 
 type Activity = {
   time?: string;
@@ -120,10 +122,7 @@ const normalizeImageUrl = (
   seed: string,
 ) => {
   if (!url) return buildImageUrl(fallbackQuery, seed);
-  if (
-    url.includes("source.unsplash.com") ||
-    url.includes("loremflickr.com")
-  ) {
+  if (url.includes("source.unsplash.com") || url.includes("loremflickr.com")) {
     return buildImageUrl(fallbackQuery, seed);
   }
   return url;
@@ -138,26 +137,28 @@ const handleImageError =
 
 export default function TripDetailsPage() {
   const params = useParams();
-  const tripId =
-    typeof params?.id === "string" ? params.id : params?.id?.[0];
+  const tripId = typeof params?.id === "string" ? params.id : params?.id?.[0];
   const [copied, setCopied] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const queryClient = useQueryClient();
+  const { config } = useSiteConfig();
+  const tripLibraryFeature = config.features.tripLibrary;
+  const exportEnabled = config.features.exports.enabled;
+  const shareEnabled = config.features.publicSharing.enabled;
 
   const { data, isLoading, isError, error, refetch } = useQuery<
     TripResponse,
     Error
   >({
     queryKey: ["trip", tripId],
-    queryFn: () => ApiService.getTrip(tripId as string) as Promise<TripResponse>,
-    enabled: Boolean(tripId),
+    queryFn: () =>
+      ApiService.getTrip(tripId as string) as Promise<TripResponse>,
+    enabled: Boolean(tripId) && tripLibraryFeature.enabled,
   });
 
   const trip = data?.trip;
   const days = trip?.days
-    ? [...trip.days].sort(
-        (a, b) => (a.dayNumber ?? 0) - (b.dayNumber ?? 0),
-      )
+    ? [...trip.days].sort((a, b) => (a.dayNumber ?? 0) - (b.dayNumber ?? 0))
     : [];
 
   const galleryImages = useMemo(() => {
@@ -166,19 +167,14 @@ export default function TripDetailsPage() {
       return provided.map((image, index) =>
         normalizeImageUrl(
           image,
-          trip.destination
-            ? `${trip.destination} travel`
-            : "travel",
+          trip.destination ? `${trip.destination} travel` : "travel",
           `${trip._id}-gallery-${index + 1}`,
         ),
       );
     }
     if (trip?.destination) {
       return [
-        buildImageUrl(
-          `${trip.destination} travel`,
-          `${trip._id}-gallery-1`,
-        ),
+        buildImageUrl(`${trip.destination} travel`, `${trip._id}-gallery-1`),
         buildImageUrl(
           `${trip.destination} sightseeing`,
           `${trip._id}-gallery-2`,
@@ -186,7 +182,7 @@ export default function TripDetailsPage() {
       ];
     }
     return [];
-  }, [trip?.destination, trip?.images, trip?._id]);
+  }, [trip]);
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined" || !tripId) return "";
@@ -206,26 +202,25 @@ export default function TripDetailsPage() {
   });
 
   const handleTogglePublic = () => {
-    if (!trip) return;
+    if (!trip || !shareEnabled) return;
     updateTripMutation.mutate({ isPublic: !trip.isPublic });
   };
 
   const handleCopyLink = async () => {
-    if (!shareUrl) return;
+    if (!shareUrl || !shareEnabled) return;
     await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShareWhatsApp = () => {
-    if (!shareUrl) return;
-    const text = encodeURIComponent(
-      `Check out my trip plan: ${shareUrl}`,
-    );
+    if (!shareUrl || !shareEnabled) return;
+    const text = encodeURIComponent(`Check out my trip plan: ${shareUrl}`);
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
 
   const handleDownloadPdf = async () => {
+    if (!exportEnabled) return;
     const contentToCapture = document.getElementById("pdf-content-wrapper");
     if (!contentToCapture || isDownloadingPdf) return;
 
@@ -282,6 +277,15 @@ export default function TripDetailsPage() {
       setIsDownloadingPdf(false);
     }
   };
+
+  if (!tripLibraryFeature.enabled) {
+    return (
+      <FeatureUnavailable
+        title={tripLibraryFeature.unavailableTitle}
+        message={tripLibraryFeature.unavailableMessage}
+      />
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f5f9ff]">
@@ -403,25 +407,48 @@ export default function TripDetailsPage() {
                     Make the trip public to share a link, or download a PDF.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleTogglePublic}
-                    disabled={updateTripMutation.isPending}
-                  >
-                    {trip.isPublic ? "Make Private" : "Make Public"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadPdf}
-                    disabled={isDownloadingPdf}
-                  >
-                    {isDownloadingPdf ? "Downloading..." : "Download PDF"}
-                  </Button>
+                <div className="grid grid-flow-col-dense gap-2">
+                  {shareEnabled && (
+                    <Button
+                      variant="outline"
+                      onClick={handleTogglePublic}
+                      disabled={updateTripMutation.isPending}
+                    >
+                      {trip.isPublic ? "Make Private" : "Make Public"}
+                    </Button>
+                  )}
+                  {exportEnabled && (
+                    <Button
+                      variant="outline"
+                      onClick={handleDownloadPdf}
+                      disabled={isDownloadingPdf}
+                    >
+                      {isDownloadingPdf ? "Downloading..." : "Download PDF"}
+                    </Button>
+                  )}
                 </div>
               </div>
 
-              {trip.isPublic ? (
+              {(!shareEnabled || !exportEnabled) && (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {!shareEnabled && (
+                    <FeatureUnavailable
+                      compact
+                      title={config.features.publicSharing.unavailableTitle}
+                      message={config.features.publicSharing.unavailableMessage}
+                    />
+                  )}
+                  {!exportEnabled && (
+                    <FeatureUnavailable
+                      compact
+                      title={config.features.exports.unavailableTitle}
+                      message={config.features.exports.unavailableMessage}
+                    />
+                  )}
+                </div>
+              )}
+
+              {shareEnabled && trip.isPublic ? (
                 <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
                   <div className="flex-1 rounded-xl border py-2 text-xs text-slate-600 bg-slate-50">
                     <p className="mx-3 overflow-hidden">{shareUrl}</p>
@@ -443,11 +470,11 @@ export default function TripDetailsPage() {
                     </Button>
                   </div>
                 </div>
-              ) : (
+              ) : shareEnabled ? (
                 <p className="mt-3 text-xs text-slate-500">
                   Public link is off. Enable public to share this trip.
                 </p>
-              )}
+              ) : null}
             </div>
 
             {galleryImages.length ? (
@@ -463,7 +490,10 @@ export default function TripDetailsPage() {
                       alt={`Trip image ${index + 1}`}
                       className="h-40 w-full rounded-2xl object-cover"
                       onError={handleImageError(
-                        buildImageUrl("travel", `${trip?._id}-gallery-fallback`),
+                        buildImageUrl(
+                          "travel",
+                          `${trip?._id}-gallery-fallback`,
+                        ),
                       )}
                     />
                   ))}
@@ -495,7 +525,7 @@ export default function TripDetailsPage() {
                   Places to Visit
                 </h2>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    {trip.places.map((place, index) => {
+                  {trip.places.map((place, index) => {
                     const placeSeed = `${trip._id}-${place.name || index}`;
                     const placeImage = normalizeImageUrl(
                       place.image,
@@ -507,11 +537,11 @@ export default function TripDetailsPage() {
                       placeSeed,
                     );
 
-                      return (
-                    <div
-                      key={`${place.name ?? "place"}-${index}`}
-                      className="overflow-hidden rounded-2xl border bg-white"
-                    >
+                    return (
+                      <div
+                        key={`${place.name ?? "place"}-${index}`}
+                        className="overflow-hidden rounded-2xl border bg-white"
+                      >
                         {placeImage ? (
                           <img
                             src={placeImage}
@@ -526,19 +556,19 @@ export default function TripDetailsPage() {
                             Image unavailable
                           </div>
                         )}
-                      <div className="p-3">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {place.name || "Place"}
-                        </p>
-                        {place.description && (
-                          <p className="mt-1 text-xs text-slate-600">
-                            {place.description}
+                        <div className="p-3">
+                          <p className="text-sm font-semibold text-slate-900">
+                            {place.name || "Place"}
                           </p>
-                        )}
+                          {place.description && (
+                            <p className="mt-1 text-xs text-slate-600">
+                              {place.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                      );
-                    })}
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -562,38 +592,38 @@ export default function TripDetailsPage() {
                     );
 
                     return (
-                    <div
-                      key={`${hotel.name ?? "hotel"}-${index}`}
-                      className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-3"
-                    >
-                      {hotelImage ? (
-                        <img
-                          src={hotelImage}
-                          alt={hotel.name || "Hotel"}
-                          className="h-16 w-24 rounded-xl object-cover"
-                          onError={handleImageError(
-                            buildImageUrl("hotel", hotelSeed),
-                          )}
-                        />
-                      ) : (
-                        <div className="flex h-16 w-24 items-center justify-center rounded-xl bg-slate-50 text-[10px] text-slate-400">
-                          No image
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {hotel.name || "Hotel"}
-                        </p>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {hotel.price && <span>{hotel.price}</span>}
-                          {hotel.rating !== undefined && (
-                            <span> - Rating: {hotel.rating}</span>
-                          )}
+                      <div
+                        key={`${hotel.name ?? "hotel"}-${index}`}
+                        className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-3"
+                      >
+                        {hotelImage ? (
+                          <img
+                            src={hotelImage}
+                            alt={hotel.name || "Hotel"}
+                            className="h-16 w-24 rounded-xl object-cover"
+                            onError={handleImageError(
+                              buildImageUrl("hotel", hotelSeed),
+                            )}
+                          />
+                        ) : (
+                          <div className="flex h-16 w-24 items-center justify-center rounded-xl bg-slate-50 text-[10px] text-slate-400">
+                            No image
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900">
+                            {hotel.name || "Hotel"}
+                          </p>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {hotel.price && <span>{hotel.price}</span>}
+                            {hotel.rating !== undefined && (
+                              <span> - Rating: {hotel.rating}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                      );
-                    })}
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -610,7 +640,10 @@ export default function TripDetailsPage() {
 
               <div className="mt-4 space-y-4">
                 {days.map((day, index) => (
-                  <div key={`${day.dayNumber ?? index}`} className="rounded-2xl border p-4">
+                  <div
+                    key={`${day.dayNumber ?? index}`}
+                    className="rounded-2xl border p-4"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-slate-900">
@@ -640,62 +673,60 @@ export default function TripDetailsPage() {
                           );
 
                           return (
-                          <li
-                            key={`${activity.name ?? "activity"}-${activityIndex}`}
-                            className="rounded-xl bg-slate-50 p-3"
-                          >
-                            <div className="flex flex-wrap items-start gap-3">
-                              {activityImage ? (
-                                <img
-                                  src={activityImage}
-                                  alt={activity.name || "Activity"}
-                                  className="h-16 w-24 rounded-xl object-cover"
-                                  onError={handleImageError(
-                                    buildImageUrl("activity", activitySeed),
-                                  )}
-                                />
-                              ) : (
-                                <div className="flex h-16 w-24 items-center justify-center rounded-xl bg-white text-[10px] text-slate-400">
-                                  No image
-                                </div>
-                              )}
-                              <div className="flex-1">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <span className="font-medium text-slate-900">
-                                    {activity.name || "Activity"}
-                                  </span>
-                                  {activity.time && (
-                                    <span className="text-xs text-slate-500">
-                                      {activity.time}
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="mt-1 text-xs text-slate-500">
-                                  {activity.location && (
-                                    <span>
-                                      Location: {activity.location}
-                                    </span>
-                                  )}
-                                  {activity.duration && (
-                                    <span> - {activity.duration}</span>
-                                  )}
-                                  {activity.cost !== undefined && (
-                                    <span> - Cost: {activity.cost}</span>
-                                  )}
-                                  {activity.type && (
-                                    <span> - {activity.type}</span>
-                                  )}
-                                </div>
-
-                                {activity.description && (
-                                  <p className="mt-2 text-xs text-slate-600">
-                                    {activity.description}
-                                  </p>
+                            <li
+                              key={`${activity.name ?? "activity"}-${activityIndex}`}
+                              className="rounded-xl bg-slate-50 p-3"
+                            >
+                              <div className="flex flex-wrap items-start gap-3">
+                                {activityImage ? (
+                                  <img
+                                    src={activityImage}
+                                    alt={activity.name || "Activity"}
+                                    className="h-16 w-24 rounded-xl object-cover"
+                                    onError={handleImageError(
+                                      buildImageUrl("activity", activitySeed),
+                                    )}
+                                  />
+                                ) : (
+                                  <div className="flex h-16 w-24 items-center justify-center rounded-xl bg-white text-[10px] text-slate-400">
+                                    No image
+                                  </div>
                                 )}
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="font-medium text-slate-900">
+                                      {activity.name || "Activity"}
+                                    </span>
+                                    {activity.time && (
+                                      <span className="text-xs text-slate-500">
+                                        {activity.time}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="mt-1 text-xs text-slate-500">
+                                    {activity.location && (
+                                      <span>Location: {activity.location}</span>
+                                    )}
+                                    {activity.duration && (
+                                      <span> - {activity.duration}</span>
+                                    )}
+                                    {activity.cost !== undefined && (
+                                      <span> - Cost: {activity.cost}</span>
+                                    )}
+                                    {activity.type && (
+                                      <span> - {activity.type}</span>
+                                    )}
+                                  </div>
+
+                                  {activity.description && (
+                                    <p className="mt-2 text-xs text-slate-600">
+                                      {activity.description}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </li>
+                            </li>
                           );
                         })}
                       </ul>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -18,6 +18,8 @@ import {
 import Link from "next/link";
 
 import ChatBox, { type UiMessage } from "./_component/ChatBox";
+import FeatureUnavailable from "@/app/_component/FeatureUnavailable";
+import { useSiteConfig } from "@/app/_component/SiteConfigProvider";
 import { ApiService } from "@/app/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
@@ -153,14 +155,15 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
   const searchParams = useSearchParams();
   const query = searchParams.get("q");
 
-  console.log({query})
-
   const [tripPlan, setTripPlan] = useState<AssistantTripPlan | null>(null);
   const [expandedDay, setExpandedDay] = useState<number | null>(1);
   const sentQueryRef = useRef<string | null>(null);
   const { user } = useUser();
   const userName = user?.fullName;
   const queryClient = useQueryClient();
+  const { config } = useSiteConfig();
+  const plannerFeature = config.features.aiPlanner;
+  const mapsFeature = config.features.maps;
 
   const billingQuery = useQuery<BillingUsageResponse, Error>({
     queryKey: ["billing-usage"],
@@ -251,7 +254,7 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
 
   const loading = sendMessageMutation.isPending;
 
-  const sendMessage = (text: string) => {
+  const sendMessage = useCallback((text: string) => {
     if (!text.trim()) return;
     if (isChatDisabled) {
       const disabledText = resetLabel
@@ -279,7 +282,7 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
       message: text.trim(),
       conversationId,
     });
-  };
+  }, [conversationId, isChatDisabled, resetLabel, sendMessageMutation]);
 
   const title = useMemo(
     () => tripPlan?.title || "Trip Plan",
@@ -310,16 +313,27 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
       ];
     }
     return [];
-  }, [tripPlan?.destination, tripPlan?.images]);
+  }, [tripPlan]);
 
   useEffect(() => {
     if (!query) return;
     if (sentQueryRef.current === query) return;
-    sentQueryRef.current = query;
-    sendMessage(query);
-  }, [query]);
+    const timeout = window.setTimeout(() => {
+      sentQueryRef.current = query;
+      sendMessage(query);
+    }, 0);
 
-  console.log({ tripPlan });
+    return () => window.clearTimeout(timeout);
+  }, [query, sendMessage]);
+
+  if (!plannerFeature.enabled) {
+    return (
+      <FeatureUnavailable
+        title={plannerFeature.unavailableTitle}
+        message={plannerFeature.unavailableMessage}
+      />
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f5f9ff]">
@@ -446,6 +460,7 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
                       <img
                         key={`${img}-${index}`}
                         src={img}
+                        alt={`${tripPlan.destination || "Trip"} image ${index + 1}`}
                         className="rounded-xl h-40 object-cover w-full"
                         onError={handleImageError(
                           buildImageUrl(
@@ -521,6 +536,7 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
                         >
                           <img
                             src={placeImage}
+                            alt={place.name}
                             className="h-28 w-full object-cover"
                             onError={handleImageError(
                               buildImageUrl("travel destination", placeSeed),
@@ -548,11 +564,17 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
                       <Map size={16} />
                       Map View
                     </div>
-                    {hasPremiumPlan ? (
+                    {hasPremiumPlan && mapsFeature.enabled ? (
                       <TripMap
                         places={tripPlan.places || []}
                         hotels={tripPlan.hotels || []}
                         className="h-56 sm:h-64 rounded-xl z-0 overflow-hidden relative"
+                      />
+                    ) : !mapsFeature.enabled ? (
+                      <FeatureUnavailable
+                        compact
+                        title={mapsFeature.unavailableTitle}
+                        message={mapsFeature.unavailableMessage}
                       />
                     ) : (
                       <div className="rounded-xl border bg-slate-50 p-4 text-sm text-slate-600">
@@ -594,6 +616,7 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
                         >
                           <img
                             src={hotelImage}
+                            alt={hotel.name}
                             className="h-16 w-20 object-cover rounded-md"
                             onError={handleImageError(
                               buildImageUrl("hotel", hotelSeed),
@@ -685,6 +708,7 @@ const PlanTripClient = ({ hasPremiumPlan }: PlanTripClientProps) => {
                                   <div key={`${activity.name}-${index}`} className="flex gap-3 items-start">
                                     <img
                                       src={activityImage}
+                                      alt={activity.name}
                                       className="h-16 w-20 object-cover rounded-md"
                                       onError={handleImageError(buildImageUrl("travel activity", activitySeed))}
                                     />

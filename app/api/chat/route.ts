@@ -6,6 +6,7 @@ import { connectDB } from "@/app/lib/db";
 import Conversation from "@/app/lib/models/Conversation";
 import Trip from "@/app/lib/models/Trip";
 import { reserveCredits, refundCredits } from "@/app/lib/billing";
+import { getSiteConfig, unavailableJsonResponse } from "@/app/lib/site-config";
 
 export const runtime = "nodejs";
 
@@ -186,6 +187,10 @@ export async function POST(request: NextRequest) {
   let creditUserId: string | null = null;
 
   try {
+    const config = await getSiteConfig();
+    const unavailableResponse = unavailableJsonResponse(config, "aiPlanner");
+    if (unavailableResponse) return unavailableResponse;
+
     const user = await requireAuth();
     await connectDB();
     creditUserId = String(user._id);

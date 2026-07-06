@@ -11,6 +11,8 @@ import {
   Wallet,
 } from "lucide-react";
 
+import FeatureUnavailable from "@/app/_component/FeatureUnavailable";
+import { useSiteConfig } from "@/app/_component/SiteConfigProvider";
 import { ApiService } from "@/app/lib/api-client";
 import { Button } from "@/components/ui/button";
 
@@ -109,15 +111,27 @@ const handleImageError =
   };
 
 export default function RecentTripsPage() {
+  const { config } = useSiteConfig();
+  const tripLibraryFeature = config.features.tripLibrary;
   const { data, isLoading, isError, error, refetch } = useQuery<
     TripsResponse,
     Error
   >({
     queryKey: ["trips", "recent"],
     queryFn: () => ApiService.getTrips(undefined, 1, 20) as Promise<TripsResponse>,
+    enabled: tripLibraryFeature.enabled,
   });
 
   const trips = data?.trips ?? [];
+
+  if (!tripLibraryFeature.enabled) {
+    return (
+      <FeatureUnavailable
+        title={tripLibraryFeature.unavailableTitle}
+        message={tripLibraryFeature.unavailableMessage}
+      />
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f5f9ff]">
