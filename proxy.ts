@@ -2,8 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/pricing",
+  "/trips/public(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/api/config",
+  "/api/public/(.*)",
   "/api/health", // Keep health public for Vercel/Monitoring
   "/api/webhooks/(.*)", // Webhooks are usually public but verified via signatures
 ]);

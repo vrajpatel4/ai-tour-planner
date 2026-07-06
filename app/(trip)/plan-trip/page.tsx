@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { ApiService } from "@/app/lib/api-client";
+import FeatureUnavailable from "@/app/_component/FeatureUnavailable";
+import { useSiteConfig } from "@/app/_component/SiteConfigProvider";
 import ChatBox, { UiMessage } from "../plan-trip-new/_component/ChatBox";
 
 type TripPlan = {
@@ -29,6 +31,8 @@ type Response = {
 };
 
 export default function PlanTripPage() {
+  const { config } = useSiteConfig();
+  const plannerFeature = config.features.aiPlanner;
   const [messages, setMessages] = useState<UiMessage[]>([
     {
       id: "init",
@@ -82,6 +86,15 @@ export default function PlanTripPage() {
 
     sendMutation.mutate(text);
   };
+
+  if (!plannerFeature.enabled) {
+    return (
+      <FeatureUnavailable
+        title={plannerFeature.unavailableTitle}
+        message={plannerFeature.unavailableMessage}
+      />
+    );
+  }
 
   return (
     <div className="p-6 grid md:grid-cols-2 gap-6 min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -140,7 +153,7 @@ function TripPanel({ tripPlan }: { tripPlan: TripPlan | null }) {
       {tripPlan.days?.map((day) => (
         <div key={day.day} className="border rounded-xl p-3">
           <h4 className="font-medium">
-            Day {day.day} — {day.title}
+            Day {day.day}: {day.title}
           </h4>
 
           <ul className="text-sm mt-2 list-disc pl-5">

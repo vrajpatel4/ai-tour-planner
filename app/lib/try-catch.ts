@@ -2,6 +2,11 @@ import axios from "axios";
 
 export const getErrorMessage = (error: unknown, fallback: string) => {
   if (axios.isAxiosError(error)) {
+    if (typeof error.response?.data === "string") {
+      const responseText = error.response.data.trim();
+      return responseText.startsWith("<") ? fallback : responseText;
+    }
+
     return (
       error.response?.data?.message ||
       error.response?.data?.error ||

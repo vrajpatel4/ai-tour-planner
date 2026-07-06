@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, MapPin, Users, Wallet } from "lucide-react";
 
+import FeatureUnavailable from "@/app/_component/FeatureUnavailable";
+import { useSiteConfig } from "@/app/_component/SiteConfigProvider";
+import { ApiService } from "@/app/lib/api-client";
 import { Button } from "@/components/ui/button";
 
 type Activity = {
@@ -119,15 +122,9 @@ const handleImageError =
     event.currentTarget.src = fallback;
   };
 
-const fetchPublicTrip = async (id: string) => {
-  const response = await fetch(`/api/public/trips/${id}`);
-  if (!response.ok) {
-    throw new Error("Trip not found");
-  }
-  return (await response.json()) as PublicTripResponse;
-};
-
 export default function PublicTripDetailsPage() {
+  const { config } = useSiteConfig();
+  const publicSharingFeature = config.features.publicSharing;
   const params = useParams();
   const tripId =
     typeof params?.id === "string" ? params.id : params?.id?.[0];
@@ -137,8 +134,11 @@ export default function PublicTripDetailsPage() {
     Error
   >({
     queryKey: ["public-trip", tripId],
-    queryFn: () => fetchPublicTrip(tripId as string),
-    enabled: Boolean(tripId),
+    queryFn: () =>
+      ApiService.getPublicTrip<PublicTripResponse>(
+        tripId as string,
+      ) as Promise<PublicTripResponse>,
+    enabled: Boolean(tripId) && publicSharingFeature.enabled,
   });
 
   const trip = data?.trip;
@@ -174,7 +174,16 @@ export default function PublicTripDetailsPage() {
       ];
     }
     return [];
-  }, [trip?.destination, trip?.images, trip?._id]);
+  }, [trip]);
+
+  if (!publicSharingFeature.enabled) {
+    return (
+      <FeatureUnavailable
+        title={publicSharingFeature.unavailableTitle}
+        message={publicSharingFeature.unavailableMessage}
+      />
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f5f9ff]">

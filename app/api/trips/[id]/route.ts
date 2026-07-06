@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/app/lib/auth";
 import { connectDB } from "@/app/lib/db";
 import Trip from "@/app/lib/models/Trip";
+import { getSiteConfig, unavailableJsonResponse } from "@/app/lib/site-config";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,10 @@ type RouteContext = {
 
 export async function GET(_: NextRequest, context: RouteContext) {
   try {
+    const config = await getSiteConfig();
+    const unavailableResponse = unavailableJsonResponse(config, "tripLibrary");
+    if (unavailableResponse) return unavailableResponse;
+
     const user = await requireAuth();
     await connectDB();
     const { id } = await context.params;
@@ -33,10 +38,27 @@ export async function GET(_: NextRequest, context: RouteContext) {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
+    const config = await getSiteConfig();
+    const tripLibraryUnavailable = unavailableJsonResponse(config, "tripLibrary");
+    if (tripLibraryUnavailable) return tripLibraryUnavailable;
+
     const user = await requireAuth();
     await connectDB();
     const { id } = await context.params;
     const body = await request.json();
+
+    if (
+      typeof body === "object" &&
+      body &&
+      "isPublic" in body &&
+      !config.features.publicSharing.enabled
+    ) {
+      const publicSharingUnavailable = unavailableJsonResponse(
+        config,
+        "publicSharing",
+      );
+      if (publicSharingUnavailable) return publicSharingUnavailable;
+    }
 
     const trip = await Trip.findOneAndUpdate(
       { _id: id, clerkUserId: user.clerkId },
@@ -57,6 +79,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_: NextRequest, context: RouteContext) {
   try {
+    const config = await getSiteConfig();
+    const unavailableResponse = unavailableJsonResponse(config, "tripLibrary");
+    if (unavailableResponse) return unavailableResponse;
+
     const user = await requireAuth();
     await connectDB();
     const { id } = await context.params;
